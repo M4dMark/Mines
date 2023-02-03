@@ -26,28 +26,28 @@ def render_lines():
 def calculate_mine_indexes():
     mine_indexes = []
     for x in range(50):
-        mine_index = calculate_index()
-        while mine_index in mine_indexes:
-            mine_index = calculate_index()
-        mine_indexes.append(mine_index)
-    print(mine_indexes)
+        index = calculate_index()
+        mine_indexes.append(check_index(index, mine_indexes))
     return mine_indexes
 
 def calculate_index():
     mine_index = [random.randint(0, 15), random.randint(0, 15)]
     return mine_index
 
+def check_index(index, mines):
+    while index in mines:
+        index = calculate_index()
+    return index
+
+mines = calculate_mine_indexes()
+print(mines)
 
 def assign_mine_indexes():
-    mines = calculate_mine_indexes()
-    for mine_index in mines:
-        board[mine_index[0]][mine_index[1]].is_a_bomb = True
-        pygame.draw.rect(window, (255, 0, 0), board[mine_index[0]][mine_index[1]])
-
+    for mine in mines:
+        pygame.draw.rect(window, (255, 0 , 0), board[mine[0]][mine[1]].rect)
 
 def main():
     done = False
-
     create_board()
     render_mines()
     render_lines()
@@ -58,11 +58,7 @@ def main():
             if event.type == pygame.QUIT:
                 done = True
             if event.type == pygame.MOUSEBUTTONDOWN:
-                for x in board:
-                    for mine in x:
-                        if mine.is_hovering(mouse):
-                            pass
-                            
+                pass     
             pygame.display.update()
 
     pygame.quit()
