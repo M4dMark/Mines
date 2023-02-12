@@ -40,25 +40,48 @@ def check_index(index, mines):
     return index
 
 mines = calculate_mine_indexes()
-print(mines)
 
 def assign_mine_indexes():
-    for mine in mines:
-        pygame.draw.rect(window, (255, 0 , 0), board[mine[0]][mine[1]].rect)
+    for x in board:
+        for rect in x:
+            if [rect.position_x // 50, rect.position_y // 50] in mines:
+                pygame.draw.rect(window, (255, 0 , 0), rect.rect)
+                rect.is_a_bomb = True
+            else:
+                pygame.draw.rect(window, (255, 255, 255), rect.rect)
+
+def search_clicked_rect(mouse):
+    for x in board:
+        for mine in x:
+            if mine.is_hovering(mouse) == True:
+                check_if_mine(mine) 
+
+def check_if_mine(mine):
+    if mine.is_a_bomb and [mine.position_x // 50, mine.position_y // 50] in mines:
+        mines.remove([mine.position_x // 50, mine.position_y // 50])
+        new_mine = calculate_index()
+        new_mine = check_index(new_mine, mines)
+        mines.append(new_mine)
+        assign_mine_indexes()
+        render_lines()
+
+def first_click():
+    pass
+
 
 def main():
     done = False
     create_board()
     render_mines()
-    render_lines()
     assign_mine_indexes()
+    render_lines()
     while done is False:
         mouse = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             if event.type == pygame.MOUSEBUTTONDOWN:
-                pass     
+                search_clicked_rect(mouse)
             pygame.display.update()
 
     pygame.quit()

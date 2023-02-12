@@ -14,7 +14,7 @@ class Mine:
         pygame.draw.rect(self.screen, (255, 255, 255), self.rect)
 
     def is_hovering(self, mouse):
-        if [self.position_x, self.position_y] in mouse:
+        if self.rect.collidepoint(mouse):
             return True
         else:
             return False
