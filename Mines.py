@@ -6,6 +6,7 @@ from Mine import Mine
 pygame.init()
 window = pygame.display.set_mode((800, 800))
 board = [[None for y in range(800 // 50)] for x in range(800 // 50)]
+font = pygame.font.SysFont('monospace', 32)
 
 def create_board():
     for x in range(len(board)):
@@ -53,20 +54,38 @@ def assign_mine_indexes():
 def search_clicked_rect(mouse):
     for x in board:
         for mine in x:
-            if mine.is_hovering(mouse) == True:
-                check_if_mine(mine) 
+            if mine.is_hovering(mouse) == True and check_if_mine(mine):
+                replace_if_mine(mine) 
+                calculate_mine_probability(mine)
+    display_text()
+
+def replace_if_mine(mine):
+    mines.remove([mine.position_x // 50, mine.position_y // 50])
+    new_mine = calculate_index()
+    new_mine = check_index(new_mine, mines)
+    mines.append(new_mine)
+    assign_mine_indexes()
+    render_lines()
+
+def calculate_mine_probability(mine):
+    mine_position_x = mine.position_x // 50
+    mine_position_y = mine.position_y // 50
+    board[mine_position_x + 1][mine_position_y].status += 1
+    board[mine_position_x][mine_position_y + 1].status += 1
+    board[mine_position_x - 1][mine_position_y].status += 1
+    board[mine_position_x][mine_position_y - 1].status += 1 
+
+def display_text():
+    for x in board:
+        for mine in x:
+            text = font.render(str(mine.status), True, (0, 0, 0))
+            window.blit(text, mine.rect.center)
 
 def check_if_mine(mine):
-    if mine.is_a_bomb and [mine.position_x // 50, mine.position_y // 50] in mines:
-        mines.remove([mine.position_x // 50, mine.position_y // 50])
-        new_mine = calculate_index()
-        new_mine = check_index(new_mine, mines)
-        mines.append(new_mine)
-        assign_mine_indexes()
-        render_lines()
-
-def first_click():
-    pass
+    if mine.is_a_bomb == True:
+        return True
+    else:
+        return False
 
 
 def main():
