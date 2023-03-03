@@ -5,18 +5,24 @@ from Mine import Mine
 
 pygame.init()
 window = pygame.display.set_mode((800, 800))
-board = [[None for y in range(800 // 50)] for x in range(800 // 50)]
+flags = 35
+board = [[Mine(window, col * 50, row * 50, True) if random.randint(1, 10) == 1 else Mine(window, col * 50, row * 50, False) for col in range(16)] for row in range(16)]
 font = pygame.font.SysFont('monospace', 32)
-
-def create_board():
-    for x in range(len(board)):
-        for y in range(len(board[x])):
-            board[x][y] = Mine(window, x * 50, y * 50)
 
 def render_mines():
     for x in board:
         for mine in x:
             mine.render()
+
+def number_of_mines():
+    number_of_mines = 0
+    for row in board:
+        for mine in row:
+            if mine.is_a_mine:
+                number_of_mines += 1
+            else:
+                pass
+    return number_of_mines
 
 def render_lines():
     for x in range(800 // 50):
@@ -24,56 +30,40 @@ def render_lines():
     for y in range(800 // 50):
         pygame.draw.line(window, (0, 0, 0), (0, y * 50), (800, y * 50))
 
-def calculate_mine_indexes():
-    mine_indexes = []
-    for x in range(50):
-        index = calculate_index()
-        mine_indexes.append(check_index(index, mine_indexes))
-    return mine_indexes
-
-def calculate_index():
-    mine_index = [random.randint(0, 15), random.randint(0, 15)]
-    return mine_index
-
-def check_index(index, mines):
-    while index in mines:
-        index = calculate_index()
-    return index
-
-mines = calculate_mine_indexes()
-
 def assign_mine_indexes():
-    for x in board:
-        for rect in x:
-            if [rect.position_x // 50, rect.position_y // 50] in mines:
-                pygame.draw.rect(window, (255, 0 , 0), rect.rect)
-                rect.is_a_bomb = True
+    for row in board:
+        for mine in row:
+            if mine.is_a_mine:
+                pygame.draw.rect(window, (255, 0 , 0), mine.rect)
             else:
-                pygame.draw.rect(window, (255, 255, 255), rect.rect)
+                pygame.draw.rect(window, (255, 255, 255), mine.rect)
 
-def search_clicked_rect(mouse):
-    for x in board:
-        for mine in x:
-            if mine.is_hovering(mouse) == True and check_if_mine(mine):
+def first_click(mouse):
+    for row in board:
+        for mine in row:
+            if mine.is_hovering(mouse) and check_if_mine(mine):
                 replace_if_mine(mine) 
-                calculate_mine_probability(mine)
+                undercover()
+    calculate_mine_probabilities()
     display_text()
 
 def replace_if_mine(mine):
-    mines.remove([mine.position_x // 50, mine.position_y // 50])
-    new_mine = calculate_index()
-    new_mine = check_index(new_mine, mines)
-    mines.append(new_mine)
+    mine.is_a_mine = False
+    new_mine = [random.randint(0, 15), random.randint(0, 15)]
+    board[new_mine[0]][new_mine[1]].is_a_mine = True
     assign_mine_indexes()
-    render_lines()
 
-def calculate_mine_probability(mine):
-    mine_position_x = mine.position_x // 50
-    mine_position_y = mine.position_y // 50
-    board[mine_position_x + 1][mine_position_y].status += 1
-    board[mine_position_x][mine_position_y + 1].status += 1
-    board[mine_position_x - 1][mine_position_y].status += 1
-    board[mine_position_x][mine_position_y - 1].status += 1 
+def calculate_mine_probabilities():
+    for row in range(len(board)):
+        for col in range(len(board[row])):
+            mines_around = 0
+            for x in range(-1, 2, 1):
+                for y in range(-1, 2, 1):
+                    if row + x > -1 and row + x < len(board):
+                        if col + y > -1 and col + y < len(board[0]):
+                            if board[row + x][col + y].is_a_mine:
+                                mines_around += 1
+            board[row][col].status = mines_around
 
 def display_text():
     for x in board:
@@ -82,15 +72,48 @@ def display_text():
             window.blit(text, mine.rect.center)
 
 def check_if_mine(mine):
-    if mine.is_a_bomb == True:
+    if mine.is_a_mine:
         return True
     else:
         return False
 
+def assign_flag(mouse):
+    global flags
+    flags -= 1
+    for row in board:
+        for mine in row:
+            if mine.is_marked and mine.is_hovering(mouse):
+                print('Already marked this tile.')
+            elif mine.is_marked is False and mine.is_hovering(mouse):
+                pygame.draw.rect(window, (255, 0, 0), mine.rect)
+                mine.is_marked = True
+
+def undercover():
+    pass
+
+def check_over(mouse):
+    for row in board:
+        for mine in row:
+            if mine.is_a_mine and mine.is_hovering(mouse):
+                print('Youve clicked on a mine. Games Over!')
+                pygame.quit()
+                sys.exit()
+            else:
+                continue
+
+def check_win():
+    number_of_marked = 0
+    for row in board:
+        for mine in row:
+            if mine.is_a_mine and mine.is_marked:
+                number_of_marked += 1
+                if number_of_marked == number_of_mines():
+                    print('Youve won!')
+    #jestli je pocet oznacenych min roven poctu celkovych min
 
 def main():
     done = False
-    create_board()
+    click = 0
     render_mines()
     assign_mine_indexes()
     render_lines()
@@ -100,7 +123,15 @@ def main():
             if event.type == pygame.QUIT:
                 done = True
             if event.type == pygame.MOUSEBUTTONDOWN:
-                search_clicked_rect(mouse)
+                if pygame.mouse.get_pressed()[0] and click < 1:
+                    first_click(mouse)
+                    click += 1
+                elif pygame.mouse.get_pressed()[0] and click >= 1:
+                    undercover()
+                    check_over(mouse)
+                elif pygame.mouse.get_pressed()[2]:
+                    assign_flag(mouse)
+                    check_win()
             pygame.display.update()
 
     pygame.quit()
